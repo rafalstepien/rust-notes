@@ -1,32 +1,72 @@
-# Role
-You are experienced Rust developer with exceptional teaching skills. You want to help me learn Rust
+# Rust memory
 
-# Goal
-You will be reviewing my notes abut Rust.
-I will provide a high-level overview of what should I write in this specific note (prepared by LLM).
-I will also provide you with note that I wrote on my own trying to conform to the high-level overview. 
-You will do the following:
-1. Analyze my note in the context of provided overview
-2. Identify gaps, statements that are not true, implicit assumptions
-3. Provide me a concise summary of your analysis, preferably as bullet points so that I can iterate through them quickly and update my notes
+## What Rust is actually protecting you from
+Rust is not trying to stop your program from crashing.
+It is trying to prevent undefined behavior (UB).
 
-# High level overview by LLM
-## 2. Rust’s Memory Model (No Ownership Yet)
+### Undefined Behavior in Rust
+Undefined behavior means the program has entered a state where the language no longer defines what happens. At that point, anything is allowed: crashes, silent data corruption, security vulnerabilities, or seemingly correct behavior that breaks later.
 
-**Purpose:** describe the battlefield before introducing laws.
+Rust’s definition of undefined behavior is stricter than C and C++.
 
-Write about:
+In C/C++, many invalid programs are treated as “the programmer’s responsibility” and may appear to work depending on the compiler or platform. Rust explicitly forbids these situations. If they occur, the program is considered invalid, even if it seems to run correctly.
 
-* Stack vs heap (frames, lifetimes, deallocation)
-* Fixed-size vs dynamically-sized data
-* What “going out of scope” physically means
-* What “drop” actually does
-* Why heap memory must have **one deallocator**
+Examples of undefined behavior include:
+- Accessing memory after it has been deallocated
+- Accessing memory outside the bounds of an allocation
+- Interpreting memory as a value that does not match its type
+- Mutating memory while it is simultaneously accessed in an incompatible way
+- Concurrently accessing the same memory from multiple threads without proper synchronization
 
-Do **not** mention borrow checker or references here.
+These are not “bugs that might cause problems.”. They are states the compiler assumes will never happen.
 
 
-# My note
+### Why Rust enforces guarantees at compile time
+Because once undefined behavior exists, reasoning about the program becomes impossible.
+
+The guarantees exist to:
+- Eliminate entire classes of security vulnerabilities
+- Allow the compiler to assume the program is valid and optimize aggressively
+- Ensure that code behavior is predictable and portable
+
+Performance is a consequence, not the goal. The real goal is soundness: the compiler must be allowed to trust the program.
+
+
+### Memory safety, data races and memory leaks
+These terms are often confused. They are not the same thing.
+
+#### Memory safety
+Means the program only:
+- Accesses memory that is valid
+- Uses memory according to its type
+- Respects the lifetime of allocations
+- Respects aliasing rules
+
+Violating any of these leads to undefined behavior.
+
+#### Data races
+A specific form of UB that occur when:
+- Multiple threads access the same memory
+- At least one access is a write
+- There is no synchronization
+
+Rust treats data races as undefined behavior and prevents them by construction.
+
+#### Memory leaks
+A memory leak means allocated memory is never released.
+This is allowed in Rust because leaking memory does not create an invalid state. The memory remains allocated and valid; it is simply never reclaimed.
+Rust prioritizes correctness over resource cleanup.
+
+
+### What safety means in Rust
+Safety in Rust does not mean: no crashes, no bugs or no logic errors.
+Safety means the program cannot enter an invalid state as defined by the language.
+
+If a Rust program crashes, it is still safe.
+If it invokes undefined behavior, it is not.
+
+Rust’s entire design is built around making invalid states unrepresentable.
+
 ## Rust's memory model
 ### Stack vs heap
 Data is stored either on stack or on the heap.
@@ -103,3 +143,9 @@ Variable / frame going out of scope means that the stack frame is popped and mem
 - Issue of double free or mismatched alloc/free happening
 - Freeing memory twice -> freeing memory you don't own -> allocator metadata corruption
 - Heap memory must be freed exactly once to keep allocator state consistent
+
+
+
+
+# Known unknowns
+- Does Rust prevent accessing memory that was deallocated, or even having a pointer to that location?
